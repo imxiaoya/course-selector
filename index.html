@@ -621,7 +621,12 @@
           '</div>';
       });
 
-      submitSection.style.display = 'none';
+      // Keep the submit button visible but disabled, with a clear message
+      submitSection.style.display = '';
+      document.getElementById('selectedList').innerHTML = '您已成功报名，不可重复提交';
+      var btnEl = document.getElementById('submitBtn');
+      btnEl.disabled = true;
+      btnEl.textContent = '已报名';
       return;
     }
 
