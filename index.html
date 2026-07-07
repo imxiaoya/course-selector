@@ -73,6 +73,10 @@
     background: #fff;
   }
   .form-group input::placeholder { color: #bbb; }
+  .form-group input.invalid {
+    border-color: #e74c3c;
+    background: #fff5f5;
+  }
 
   .radio-group {
     display: flex;
@@ -382,7 +386,7 @@
       </div>
       <div class="form-group">
         <label>电话 <span style="color:#e74c3c;">*</span></label>
-        <input type="tel" id="phoneInput" placeholder="请输入手机号" maxlength="20">
+        <input type="tel" id="phoneInput" placeholder="请输入11位手机号" maxlength="11" pattern="[0-9]*" inputmode="numeric">
       </div>
     </div>
   </div>
@@ -528,7 +532,8 @@
     if (!person.name) { showToast('请输入姓名', 'error'); return false; }
     if (!person.gender) { showToast('请选择性别', 'error'); return false; }
     if (!person.company) { showToast('请输入公司名称', 'error'); return false; }
-    if (!person.phone) { showToast('请输入电话号码', 'error'); return false; }
+    if (!person.phone) { showToast('请输入手机号码', 'error'); return false; }
+    if (!/^\d{11}$/.test(person.phone)) { showToast('手机号必须是11位数字', 'error'); return false; }
     // Check phone duplicate
     if (isPhoneRegistered(person.phone) && !alreadyRegistered) {
       showToast('该手机号已报名，不可重复提交', 'error');
@@ -547,6 +552,14 @@
 
     var person = getCurrentPerson();
     var phone = person.phone || myPhone;
+
+    // Real-time phone validation visual feedback
+    var phoneInput = document.getElementById('phoneInput');
+    if (phoneInput.value && !/^\d{11}$/.test(phoneInput.value)) {
+      phoneInput.classList.add('invalid');
+    } else {
+      phoneInput.classList.remove('invalid');
+    }
 
     // Dynamic check: if phone field changes, re-check registration
     if (phone && isPhoneRegistered(phone) && !alreadyRegistered) {
@@ -805,7 +818,13 @@
     if (e.target.closest('#submitBtn') && !e.target.closest('#submitBtn').disabled) submitSelection();
   });
 
-  ['nameInput', 'companyInput', 'phoneInput'].forEach(function(id) {
+  // Phone input: only allow digits, auto-filter non-numeric characters
+  document.getElementById('phoneInput').addEventListener('input', function(e) {
+    e.target.value = e.target.value.replace(/\D/g, '');
+    render();
+  });
+
+  ['nameInput', 'companyInput'].forEach(function(id) {
     document.getElementById(id).addEventListener('input', render);
   });
   document.querySelectorAll('input[name="gender"]').forEach(function(r) {
