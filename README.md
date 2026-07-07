@@ -1,5 +1,7 @@
 # 课程报名系统 - Cloudflare Pages 部署指南
 
+> KV namespace 已绑定，触发重部署以激活。
+
 ## 方案说明
 
 之前使用 JSONBlob 免费存储时，浏览器 POST/PUT 请求会触发 CORS 预检（OPTIONS），但 JSONBlob 对该请求返回 404，导致「保存失败: Failed to fetch」。
