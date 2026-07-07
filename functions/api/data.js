@@ -45,7 +45,26 @@ export async function onRequestPost(context) {
   if (body.password !== ADMIN_PW) {
     return new Response('Unauthorized', { status: 401, headers: corsHeaders() });
   }
+
   const data = Array.isArray(body.options) ? body.options : DEFAULT_DATA;
+
+  // If body contains a "checkPhone" field, check for duplicate registration
+  if (body.checkPhone) {
+    const phone = body.checkPhone;
+    const alreadyRegistered = data.some(opt =>
+      opt.selected && opt.selected.some(p => {
+        if (typeof p === 'object' && p.phone) return p.phone === phone;
+        return false;
+      })
+    );
+    if (alreadyRegistered) {
+      return new Response(JSON.stringify({ error: 'duplicate', message: '该手机号已报名' }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+      });
+    }
+  }
+
   try {
     await env.COURSE_DATA.put(KV_KEY, JSON.stringify(data));
   } catch (e) {

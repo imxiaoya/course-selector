@@ -260,6 +260,44 @@
   }
   .no-select { color: #bbb; font-size: 13px; line-height: 24px; }
 
+  .already-registered {
+    background: #fff;
+    border-radius: 18px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .already-registered .icon-big {
+    font-size: 48px;
+    color: #27ae60;
+    margin-bottom: 12px;
+  }
+  .already-registered h3 {
+    font-size: 18px;
+    color: #333;
+    margin-bottom: 8px;
+  }
+  .already-registered p {
+    font-size: 14px;
+    color: #666;
+  }
+  .already-registered .course-list {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+  }
+  .already-registered .course-tag {
+    background: #f0e6ff;
+    color: #667eea;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
   .btn {
     padding: 10px 24px;
     border: none;
@@ -384,11 +422,33 @@
   var options = [];
   var isRequesting = false;
   var localSelected = {}; // locally selected option ids, not yet submitted
+  var myPhone = localStorage.getItem('kecheng_phone') || ''; // remember submitted phone
+  var alreadyRegistered = false; // flag: this phone already submitted
 
   function getPersonName(obj) {
     if (typeof obj === 'string') return obj;
     if (obj && typeof obj === 'object') return obj.name || '';
     return '';
+  }
+
+  function getPersonPhone(obj) {
+    if (obj && typeof obj === 'object') return obj.phone || '';
+    return '';
+  }
+
+  // Check if a phone number has already registered in any option
+  function isPhoneRegistered(phone) {
+    if (!phone) return false;
+    return options.some(function(opt) {
+      return opt.selected.some(function(p) { return getPersonPhone(p) === phone; });
+    });
+  }
+
+  // Get which options a phone has registered for
+  function getRegisteredOptions(phone) {
+    return options.filter(function(opt) {
+      return opt.selected.some(function(p) { return getPersonPhone(p) === phone; });
+    });
   }
 
   // ===== Cloudflare Pages Functions API =====
@@ -413,15 +473,22 @@
   function fetchData() {
     return apiGet().then(function(data) {
       options = data;
+      // Check if saved phone already registered
+      var phone = myPhone || document.getElementById('phoneInput').value.trim();
+      alreadyRegistered = isPhoneRegistered(phone);
+      // Auto-fill phone from localStorage if available
+      if (myPhone && !document.getElementById('phoneInput').value.trim()) {
+        document.getElementById('phoneInput').value = myPhone;
+      }
       // sync localSelected with server state for current person
       var person = getCurrentPerson();
-      if (person.name) {
+      if (person.phone && isPhoneRegistered(person.phone)) {
+        alreadyRegistered = true;
+        myPhone = person.phone;
         options.forEach(function(opt) {
-          var isOnServer = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+          var isOnServer = opt.selected.some(function(p) { return getPersonPhone(p) === person.phone; });
           if (isOnServer) {
             localSelected[opt.id] = true;
-          } else if (!localSelected[opt.id]) {
-            // not locally selected and not on server — keep false
           }
         });
       }
@@ -462,6 +529,15 @@
     if (!person.gender) { showToast('请选择性别', 'error'); return false; }
     if (!person.company) { showToast('请输入公司名称', 'error'); return false; }
     if (!person.phone) { showToast('请输入电话号码', 'error'); return false; }
+    // Check phone duplicate
+    if (isPhoneRegistered(person.phone) && !alreadyRegistered) {
+      showToast('该手机号已报名，不可重复提交', 'error');
+      alreadyRegistered = true;
+      myPhone = person.phone;
+      localStorage.setItem('kecheng_phone', person.phone);
+      render();
+      return false;
+    }
     return true;
   }
 
@@ -470,6 +546,73 @@
     cardsEl.innerHTML = '';
 
     var person = getCurrentPerson();
+    var phone = person.phone || myPhone;
+
+    // Dynamic check: if phone field changes, re-check registration
+    if (phone && isPhoneRegistered(phone) && !alreadyRegistered) {
+      alreadyRegistered = true;
+      myPhone = phone;
+      localStorage.setItem('kecheng_phone', phone);
+    }
+
+    // Show "already registered" banner if applicable
+    var submitSection = document.getElementById('submitSection');
+    if (alreadyRegistered && phone) {
+      var regOpts = getRegisteredOptions(phone);
+      // Find the person's info from server data
+      var myInfo = null;
+      options.forEach(function(opt) {
+        opt.selected.forEach(function(p) {
+          if (getPersonPhone(p) === phone) myInfo = p;
+        });
+      });
+      cardsEl.innerHTML =
+        '<div class="already-registered">' +
+          '<div class="icon-big">✅</div>' +
+          '<h3>您已成功报名</h3>' +
+          '<p>手机号 ' + escHtml(phone) + ' 已完成报名，不可重复提交</p>' +
+          (myInfo ? '<p style="margin-top:4px;">报名人：' + escHtml(myInfo.name) + ' | ' + escHtml(myInfo.gender) + ' | ' + escHtml(myInfo.company) + '</p>' : '') +
+          '<div class="course-list">' +
+            regOpts.map(function(o) { return '<span class="course-tag">' + escHtml(o.label) + '</span>'; }).join('') +
+          '</div>' +
+        '</div>';
+
+      // Still show course cards but in view-only mode
+      options.forEach(function(opt, idx) {
+        var isFull = opt.selected.length >= opt.capacity;
+        var pct = opt.capacity > 0 ? Math.min((opt.selected.length / opt.capacity) * 100, 100) : 100;
+        var theme = CARD_THEMES[idx % CARD_THEMES.length];
+
+        var peopleHtml = opt.selected.length === 0
+          ? '<div class="no-select">暂无选择</div>'
+          : opt.selected.map(function(p) {
+              var n = getPersonName(p);
+              return '<span class="people-tag" style="background:' + theme.tagBg + ';">' + escHtml(n) + '</span>';
+            }).join('');
+
+        var isMine = opt.selected.some(function(p) { return getPersonPhone(p) === phone; });
+
+        cardsEl.innerHTML +=
+          '<div class="card' + (isFull && !isMine ? ' full' : '') + '">' +
+            '<div class="card-header">' +
+              '<div class="card-title">' +
+                '<span class="icon" style="background:' + theme.icon + ';">' + escHtml(opt.label.charAt(0)) + '</span>' + escHtml(opt.label) +
+                (isMine ? '<span style="font-size:12px;color:#27ae60;margin-left:8px;">✓ 已报名</span>' : '') +
+              '</div>' +
+              '<div class="card-count' + (isFull ? ' at-max' : '') + '">' +
+                '<span class="current">' + opt.selected.length + '</span><span class="sep"> / </span>' + opt.capacity +
+              '</div>' +
+            '</div>' +
+            '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + theme.bar + ';"></div></div>' +
+            '<div class="people-tags">' + peopleHtml + '</div>' +
+          '</div>';
+      });
+
+      submitSection.style.display = 'none';
+      return;
+    }
+
+    submitSection.style.display = '';
 
     options.forEach(function(opt, idx) {
       var isFull = opt.selected.length >= opt.capacity;
@@ -483,7 +626,7 @@
             return '<span class="people-tag" style="background:' + theme.tagBg + ';">' + escHtml(n) + '</span>';
           }).join('');
 
-      var isMeOnServer = person.name && opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+      var isMeOnServer = person.phone && opt.selected.some(function(p) { return getPersonPhone(p) === person.phone; });
       var isMeLocallySelected = localSelected[opt.id] === true;
       var isMeSelected = isMeOnServer || isMeLocallySelected;
       var isFullForMe = isFull && !isMeSelected;
@@ -504,7 +647,7 @@
           '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + theme.bar + ';"></div></div>' +
           '<div class="people-tags">' + peopleHtml + '</div>' +
           '<button class="btn" data-option="' + opt.id + '" style="background:' + theme.btn + ';" ' + (isFullForMe || isRequesting ? 'disabled' : '') + '>' +
-            (isMeLocallySelected && !isMeOnServer ? '取消选择' : isMeOnServer ? '✅ 已提交（点击取消）' : isFull ? '🔒 名额已满' : '👉 选择') +
+            (isMeLocallySelected && !isMeOnServer ? '取消选择' : isFull ? '🔒 名额已满' : '👉 选择') +
           '</button>' +
         '</div>';
     });
@@ -528,28 +671,23 @@
   function toggleLocalOption(optionId) {
     if (!validateForm()) return;
 
+    // If already registered, block
+    if (alreadyRegistered) {
+      showToast('您已报名，不可重复选择', 'error');
+      return;
+    }
+
     var opt = options.find(function(o) { return o.id === optionId; });
     if (!opt) return;
 
     var person = getCurrentPerson();
-    var isMeOnServer = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
-
-    if (isMeOnServer) {
-      // Already submitted to server — cancel by removing from server
-      cancelFromServer(optionId, person);
-      return;
-    }
 
     // Toggle local selection
     if (localSelected[optionId]) {
       localSelected[optionId] = false;
     } else {
-      // Check if it would be full
-      var currentServerCount = opt.selected.length;
-      var localAdds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; })
-        .filter(function(k) { return !opt.selected.some(function(p) { return getPersonName(p) === person.name; }); })
-        .filter(function(k) { return k === optionId; });
-      if (currentServerCount + localAdds.length > opt.capacity) {
+      // Check capacity
+      if (opt.selected.length >= opt.capacity) {
         showToast('名额已满', 'error');
         return;
       }
@@ -558,46 +696,27 @@
     render();
   }
 
-  function cancelFromServer(optionId, person) {
-    if (isRequesting) return;
-    isRequesting = true;
-    toggleSync(true);
-
-    var opt = options.find(function(o) { return o.id === optionId; });
-    if (!opt) { isRequesting = false; toggleSync(false); return; }
-
-    opt.selected = opt.selected.filter(function(p) { return getPersonName(p) !== person.name; });
-    localSelected[optionId] = false;
-
-    saveData(function(ok) {
-      isRequesting = false;
-      toggleSync(false);
-      if (ok) showToast('已取消选择 ' + opt.label, 'info');
-    });
-  }
-
   function submitSelection() {
+    if (alreadyRegistered) {
+      showToast('您已报名，不可重复提交', 'error');
+      return;
+    }
+
     var person = getCurrentPerson();
     var selectedIds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; });
 
-    // Only submit IDs that are not already on server
-    var newIds = selectedIds.filter(function(id) {
-      var opt = options.find(function(o) { return o.id === id; });
-      return opt && !opt.selected.some(function(p) { return getPersonName(p) === person.name; });
-    });
-
-    if (newIds.length === 0) {
-      showToast('没有新的选择需要提交', 'info');
+    if (selectedIds.length === 0) {
+      showToast('请先选择课程', 'info');
       return;
     }
 
     // Show confirmation modal
-    var selectedLabels = newIds.map(function(id) {
+    var selectedLabels = selectedIds.map(function(id) {
       return options.find(function(o) { return o.id === id; }).label;
     });
 
     showModal(person, selectedLabels, function() {
-      doSubmit(person, newIds);
+      doSubmit(person, selectedIds);
     });
   }
 
@@ -622,6 +741,17 @@
 
   function doSubmit(person, newIds) {
     if (isRequesting) return;
+
+    // Double-check phone not already registered
+    if (isPhoneRegistered(person.phone)) {
+      showToast('该手机号已报名，不可重复提交', 'error');
+      alreadyRegistered = true;
+      myPhone = person.phone;
+      localStorage.setItem('kecheng_phone', person.phone);
+      render();
+      return;
+    }
+
     isRequesting = true;
     toggleSync(true);
     render();
@@ -638,8 +768,13 @@
       isRequesting = false;
       toggleSync(false);
       if (ok) {
+        // Save phone to localStorage
+        myPhone = person.phone;
+        alreadyRegistered = true;
+        localStorage.setItem('kecheng_phone', person.phone);
         var labels = newIds.map(function(id) { return options.find(function(o) { return o.id === id; }).label; });
         showToast('成功报名：' + labels.join(', '), 'success');
+        render();
       }
     });
   }
