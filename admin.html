@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 — 课程报名</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f0f2f5;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; }
+
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .header h1 { font-size: 24px; color: #333; }
+  .header nav { display: flex; gap: 8px; }
+  .header nav a {
+    color: #667eea;
+    font-size: 14px;
+    text-decoration: none;
+    padding: 8px 16px;
+    border: 1px solid #667eea;
+    border-radius: 10px;
+    transition: all 0.2s;
+  }
+  .header nav a:hover { background: #667eea; color: #fff; }
+  .header nav a.active-tab { background: #667eea; color: #fff; }
+
+  .section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .section h2 {
+    font-size: 18px; color: #333; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .config-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .config-table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #999;
+    font-weight: 600;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  .config-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #f5f5f5;
+    vertical-align: middle;
+  }
+  .config-table input[type="text"] {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .config-table input[type="text"]:focus { border-color: #667eea; }
+  .config-table input[type="number"] {
+    width: 72px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    text-align: center;
+    outline: none;
+  }
+  .config-table input[type="number"]:focus { border-color: #667eea; }
+
+  .btn-delete {
+    background: none;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    padding: 4px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-delete:hover { background: #e74c3c; color: #fff; }
+
+  .stat-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #f8f9fc;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .num { font-size: 32px; font-weight: 800; color: #333; }
+  .stat-card .label { font-size: 13px; color: #999; margin-top: 4px; }
+
+  .stat-detail {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .stat-detail-item {
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .stat-detail-item .title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .stat-detail-item .progress-mini {
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .stat-detail-item .progress-mini-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .stat-detail-item .info { font-size: 13px; color: #888; margin-bottom: 8px; }
+
+  .person-list {
+    display: flex; flex-direction: column; gap: 4px;
+    max-height: 200px; overflow-y: auto;
+  }
+  .person-row {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: #555;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: #f9f9f9;
+    flex-wrap: wrap;
+  }
+  .person-row .p-name { font-weight: 600; color: #333; min-width: 40px; }
+  .person-row .p-gender { color: #667eea; }
+  .person-row .p-phone { color: #999; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: #667eea; color: #fff; }
+  .btn-primary:hover { background: #5a6fd6; }
+  .btn-add { background: #27ae60; color: #fff; }
+  .btn-add:hover { background: #219a52; }
+  .btn-outline { background: #fff; color: #e74c3c; border: 1px solid #e74c3c; }
+  .btn-outline:hover { background: #fef5f5; }
+  .btn-copy { background: #f0f0f0; color: #555; }
+  .btn-copy:hover { background: #e0e0e0; }
+
+  .toast {
+    position: fixed; top: 30px; left: 50%; transform: translateX(-50%);
+    padding: 12px 28px; border-radius: 12px; color: #fff;
+    font-size: 14px; font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    z-index: 999; animation: slideDown 0.3s ease; pointer-events: none;
+  }
+  .toast.error { background: #e74c3c; }
+  .toast.success { background: #27ae60; }
+  .toast.info { background: #3498db; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  .pw-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+  }
+  .pw-box {
+    background: #fff; border-radius: 16px;
+    padding: 36px 32px; text-align: center;
+    width: 320px; box-shadow: 0 12px 48px rgba(0,0,0,0.25);
+  }
+  .pw-box h2 { font-size: 20px; margin-bottom: 8px; color: #333; }
+  .pw-box p { font-size: 13px; color: #999; margin-bottom: 20px; }
+  .pw-box input {
+    width: 100%; padding: 12px 16px;
+    border: 2px solid #ddd; border-radius: 10px;
+    font-size: 15px; text-align: center;
+    outline: none; margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .pw-box input:focus { border-color: #667eea; }
+  .pw-box .btn { width: 100%; background: #667eea; color: #fff; }
+  .pw-box .error { color: #e74c3c; font-size: 13px; margin-top: 8px; }
+
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .data-table th {
+    text-align: left; padding: 8px 10px;
+    font-size: 12px; color: #999; font-weight: 600;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  .data-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f5f5f5;
+    vertical-align: middle;
+    color: #555;
+  }
+
+  @media (max-width: 700px) {
+    .stat-cards { grid-template-columns: repeat(2, 1fr); }
+    .stat-detail { grid-template-columns: 1fr; }
+    .config-table { font-size: 12px; }
+    .data-table { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <h2>管理员验证</h2>
+    <p>请输入管理密码</p>
+    <input type="password" id="pwInput" placeholder="请输入密码" autofocus>
+    <button class="btn" id="pwSubmit">验证进入</button>
+    <div class="error" id="pwError"></div>
+  </div>
+</div>
+
+<div class="container" id="mainContent" style="display:none;">
+  <div class="header">
+    <h1>管理后台</h1>
+    <nav>
+      <a href="#" data-tab="stats" class="tab-link active-tab">统计</a>
+      <a href="#" data-tab="config" class="tab-link">配置</a>
+      <a href="#" data-tab="detail" class="tab-link">明细</a>
+      <a href="#" data-tab="export" class="tab-link">导出</a>
+    </nav>
+  </div>
+
+  <!-- Tab: Stats -->
+  <div id="tab-stats">
+    <div class="section">
+      <h2>统计概览</h2>
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="num" id="totalSelected">0</div>
+          <div class="label">已选总人次</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="uniquePeople">0</div>
+          <div class="label">已选人数（去重）</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="totalCapacity">0</div>
+          <div class="label">总容量</div>
+        </div>
+        <div class="stat-card">
+          <div class="num" id="fillRate">0%</div>
+          <div class="label">填充率</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>课程详情</h2>
+      <div class="stat-detail" id="statDetail"></div>
+    </div>
+  </div>
+
+  <!-- Tab: Config -->
+  <div id="tab-config" style="display:none;">
+    <div class="section">
+      <h2>课程配置</h2>
+      <table class="config-table">
+        <thead>
+          <tr><th>ID</th><th>课程名称</th><th>人数上限</th><th>已选</th><th style="width:100px;">进度</th><th style="width:60px;">操作</th></tr>
+        </thead>
+        <tbody id="configBody"></tbody>
+      </table>
+      <div class="btn-row" style="margin-top:16px;">
+        <button class="btn btn-primary" id="btnSave">保存设置</button>
+        <button class="btn btn-add" id="btnAdd">添加课程</button>
+        <button class="btn btn-outline" id="btnClear">清空所有选择</button>
+        <button class="btn btn-outline" id="btnReset">恢复默认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Detail -->
+  <div id="tab-detail" style="display:none;">
+    <div class="section">
+      <h2>报名明细</h2>
+      <div style="overflow-x:auto;">
+        <table class="data-table" id="detailTable">
+          <thead>
+            <tr><th>课程</th><th>姓名</th><th>性别</th><th>公司</th><th>电话</th></tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab: Export -->
+  <div id="tab-export" style="display:none;">
+    <div class="section">
+      <h2>数据导出</h2>
+      <div style="margin-bottom:12px;">
+        <pre id="exportPreview" style="background:#f8f9fc;border-radius:10px;padding:16px;font-size:13px;color:#555;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all;"></pre>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-copy" id="btnCopy">复制数据</button>
+        <button class="btn btn-copy" id="btnExportCSV">导出 CSV</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== JSONBlob Cloud Storage Config =====
+  var API_BASE = '/api/data';
+  var ADMIN_PW = 'admin';
+  var POLL_INTERVAL = 5000;
+
+  var DEFAULT_OPTIONS = [
+    { id: 'A', label: '课程 A', capacity: 8, selected: [] },
+    { id: 'B', label: '课程 B', capacity: 8, selected: [] },
+    { id: 'C', label: '课程 C', capacity: 8, selected: [] },
+  ];
+  var BAR_COLORS = ['#f5576c', '#4facfe', '#43e97b', '#fa709a', '#a18cd1', '#d57eeb', '#8ec5fc', '#ff4e50'];
+
+  var options = [];
+  var nextIdCounter = 3;
+
+  function getPersonName(obj) {
+    if (typeof obj === 'string') return obj;
+    if (obj && typeof obj === 'object') return obj.name || '';
+    return '';
+  }
+
+  // ===== JSONBlob API =====
+  function apiGet() {
+    return fetch(API_BASE + '/' + BLOB_ID).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function apiPut(data) {
+    return fetch(API_BASE + '/' + BLOB_ID, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function fetchData() {
+    return apiGet().then(function(data) {
+      options = data;
+      nextIdCounter = options.length;
+      renderAll();
+    }).catch(function(e) {
+      console.error('获取数据失败:', e);
+    });
+  }
+
+  function saveToServer() {
+    apiPut(options).then(function(data) {
+      options = data;
+      renderAll();
+      showToast('设置已保存并同步', 'success');
+    }).catch(function(e) {
+      showToast('保存失败: ' + e.message, 'error');
+      fetchData();
+    });
+  }
+
+  function genNextId() {
+    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    if (nextIdCounter < 26) return chars[nextIdCounter];
+    return 'X' + (nextIdCounter - 25);
+  }
+
+  // ===== Password =====
+  var pwInput = document.getElementById('pwInput');
+  var pwError = document.getElementById('pwError');
+
+  function checkAuth() {
+    if (sessionStorage.getItem('admin_authed_v4') === '1') {
+      document.getElementById('pwOverlay').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      init();
+      return true;
+    }
+    return false;
+  }
+
+  document.getElementById('pwSubmit').addEventListener('click', function() {
+    if (pwInput.value === ADMIN_PW) {
+      sessionStorage.setItem('admin_authed_v4', '1');
+      document.getElementById('pwOverlay').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      pwError.textContent = '';
+      init();
+    } else {
+      pwError.textContent = '密码错误';
+      pwInput.value = '';
+      pwInput.focus();
+    }
+  });
+  pwInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') document.getElementById('pwSubmit').click();
+  });
+
+  // ===== Tabs =====
+  var currentTab = 'stats';
+  document.querySelectorAll('[data-tab]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      switchTab(this.dataset.tab);
+    });
+  });
+
+  function switchTab(name) {
+    currentTab = name;
+    document.querySelectorAll('[data-tab]').forEach(function(a) {
+      a.classList.toggle('active-tab', a.dataset.tab === name);
+    });
+    ['stats', 'config', 'detail', 'export'].forEach(function(t) {
+      document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+    });
+    switch (name) {
+      case 'stats': renderStats(); break;
+      case 'config': renderConfig(); break;
+      case 'detail': renderDetail(); break;
+      case 'export': renderExport(); break;
+    }
+  }
+
+  // ===== Render: Stats =====
+  function renderStats() {
+    var totalSel = options.reduce(function(s, o) { return s + o.selected.length; }, 0);
+    var totalCap = options.reduce(function(s, o) { return s + o.capacity; }, 0);
+    var rate = totalCap > 0 ? Math.round((totalSel / totalCap) * 100) : 0;
+    var allNames = new Set();
+    options.forEach(function(o) { o.selected.forEach(function(p) { allNames.add(getPersonName(p)); }); });
+    var unique = allNames.size;
+
+    document.getElementById('totalSelected').textContent = totalSel;
+    document.getElementById('uniquePeople').textContent = unique;
+    document.getElementById('totalCapacity').textContent = totalCap;
+    document.getElementById('fillRate').textContent = rate + '%';
+
+    var detailEl = document.getElementById('statDetail');
+    detailEl.innerHTML = options.map(function(opt, idx) {
+      var pct = opt.capacity > 0 ? Math.round((opt.selected.length / opt.capacity) * 100) : 0;
+      var color = BAR_COLORS[idx % BAR_COLORS.length];
+      var rows = opt.selected.length === 0
+        ? '<div style="color:#ccc;font-size:12px;padding:4px 0;">暂无选择</div>'
+        : opt.selected.map(function(p) {
+            var n = getPersonName(p);
+            var g = (typeof p === 'object' ? p.gender : '') || '';
+            var ph = (typeof p === 'object' ? p.phone : '') || '';
+            var co = (typeof p === 'object' ? p.company : '') || '';
+            var genderColor = g === '女' ? '#e91e63' : '#2196f3';
+            return '<div class="person-row">' +
+              '<span class="p-name">' + escHtml(n) + '</span>' +
+              (g ? '<span class="p-gender" style="color:' + genderColor + ';">' + escHtml(g) + '</span>' : '') +
+              (co ? '<span style="font-size:11px;color:#888;">' + escHtml(co) + '</span>' : '') +
+              (ph ? '<span class="p-phone">' + escHtml(ph) + '</span>' : '') +
+            '</div>';
+          }).join('');
+      return '<div class="stat-detail-item">' +
+        '<div class="title">' + escHtml(opt.label) + '</div>' +
+        '<div class="info">' + opt.selected.length + ' / ' + opt.capacity + ' 人（' + pct + '%）</div>' +
+        '<div class="progress-mini"><div class="progress-mini-bar" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+        '<div class="person-list">' + rows + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ===== Render: Config =====
+  function renderConfig() {
+    var tbody = document.getElementById('configBody');
+    tbody.innerHTML = options.map(function(opt, idx) {
+      var pct = opt.capacity > 0 ? Math.round((opt.selected.length / opt.capacity) * 100) : 0;
+      var color = BAR_COLORS[idx % BAR_COLORS.length];
+      return '<tr>' +
+        '<td><strong>' + escHtml(opt.id) + '</strong></td>' +
+        '<td><input type="text" id="label-' + opt.id + '" value="' + escAttr(opt.label) + '" maxlength="20"></td>' +
+        '<td><input type="number" id="capacity-' + opt.id + '" value="' + opt.capacity + '" min="1" max="999"></td>' +
+        '<td>' + opt.selected.length + ' 人</td>' +
+        '<td><div class="progress-mini"><div class="progress-mini-bar" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+        '<span style="font-size:11px;color:#999;">' + pct + '%</span></td>' +
+        '<td><button class="btn-delete" data-delete="' + opt.id + '">删除</button></td>' +
+      '</tr>';
+    }).join('');
+
+    tbody.querySelectorAll('[data-delete]').forEach(function(btn) {
+      btn.addEventListener('click', function() { deleteOption(this.dataset.delete); });
+    });
+  }
+
+  // ===== Render: Detail =====
+  function renderDetail() {
+    var tbody = document.getElementById('detailBody');
+    var rows = [];
+    options.forEach(function(opt) {
+      opt.selected.forEach(function(p) {
+        var n = getPersonName(p);
+        var g = (typeof p === 'object' ? p.gender : '') || '';
+        var co = (typeof p === 'object' ? p.company : '') || '';
+        var ph = (typeof p === 'object' ? p.phone : '') || '';
+        rows.push('<tr><td>' + escHtml(opt.label) + '</td><td><strong>' + escHtml(n) + '</strong></td><td>' + escHtml(g) + '</td><td>' + escHtml(co) + '</td><td>' + escHtml(ph) + '</td></tr>');
+      });
+    });
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#ccc;padding:24px;">暂无报名数据</td></tr>';
+    } else {
+      tbody.innerHTML = rows.join('');
+    }
+  }
+
+  // ===== Render: Export =====
+  function renderExport() {
+    var lines = [];
+    options.forEach(function(opt) {
+      lines.push('【' + opt.label + '】' + opt.selected.length + '/' + opt.capacity + ' 人');
+      if (opt.selected.length > 0) {
+        opt.selected.forEach(function(p, i) {
+          var n = getPersonName(p);
+          var g = (typeof p === 'object' ? p.gender : '') || '';
+          var co = (typeof p === 'object' ? p.company : '') || '';
+          var ph = (typeof p === 'object' ? p.phone : '') || '';
+          lines.push('  ' + (i + 1) + '. ' + [n, g, co, ph].filter(Boolean).join(' | '));
+        });
+      } else {
+        lines.push('  （暂无选择）');
+      }
+      lines.push('');
+    });
+    document.getElementById('exportPreview').textContent = lines.join('\n');
+  }
+
+  function escHtml(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function escAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/&/g, '&amp;'); }
+
+  function renderAll() {
+    switchTab(currentTab);
+  }
+
+  // ===== Actions =====
+  function addOption() {
+    var newId = genNextId();
+    nextIdCounter++;
+    options.push({ id: newId, label: '新课程', capacity: 8, selected: [] });
+    saveToServer();
+  }
+
+  function deleteOption(id) {
+    var opt = options.find(function(o) { return o.id === id; });
+    if (!opt) return;
+    if (!confirm('确定删除课程「' + opt.label + '」吗？该课程的所有报名记录将同时清除。')) return;
+    options = options.filter(function(o) { return o.id !== id; });
+    saveToServer();
+  }
+
+  function saveSettings() {
+    options.forEach(function(opt) {
+      var labelEl = document.getElementById('label-' + opt.id);
+      var capEl = document.getElementById('capacity-' + opt.id);
+      if (labelEl && labelEl.value.trim()) opt.label = labelEl.value.trim();
+      if (capEl) {
+        var v = parseInt(capEl.value, 10);
+        if (v >= 1) opt.capacity = v;
+      }
+    });
+    saveToServer();
+  }
+
+  function clearAllSelections() {
+    if (!confirm('确定清空所有报名记录吗？')) return;
+    options.forEach(function(o) { o.selected = []; });
+    saveToServer();
+  }
+
+  function resetToDefault() {
+    if (!confirm('确定恢复默认设置吗？所有课程、名称、容量、报名记录将全部重置。')) return;
+    options = JSON.parse(JSON.stringify(DEFAULT_OPTIONS));
+    nextIdCounter = 3;
+    saveToServer();
+  }
+
+  function copyData() {
+    var text = document.getElementById('exportPreview').textContent;
+    navigator.clipboard.writeText(text).then(
+      function() { showToast('数据已复制到剪贴板', 'success'); },
+      function() { showToast('复制失败，请手动选择文本', 'error'); }
+    );
+  }
+
+  function exportCSV() {
+    var lines = ['课程,姓名,性别,公司,电话'];
+    options.forEach(function(opt) {
+      if (opt.selected.length === 0) {
+        lines.push(opt.label + ',,,,');
+      } else {
+        opt.selected.forEach(function(p) {
+          var n = getPersonName(p);
+          var g = (typeof p === 'object' ? p.gender : '') || '';
+          var co = (typeof p === 'object' ? p.company : '') || '';
+          var ph = (typeof p === 'object' ? p.phone : '') || '';
+          lines.push(opt.label + ',' + n + ',' + g + ',' + co + ',' + ph);
+        });
+      }
+    });
+    var csv = '\uFEFF' + lines.join('\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '课程报名统计.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV 文件已下载', 'success');
+  }
+
+  var toastTimer;
+  function showToast(msg, type) {
+    var el = document.querySelector('.toast');
+    if (el) el.remove();
+    clearTimeout(toastTimer);
+    var t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    toastTimer = setTimeout(function() { t.remove(); }, 2000);
+  }
+
+  // ===== Event bindings =====
+  document.getElementById('btnSave').addEventListener('click', saveSettings);
+  document.getElementById('btnAdd').addEventListener('click', addOption);
+  document.getElementById('btnClear').addEventListener('click', clearAllSelections);
+  document.getElementById('btnReset').addEventListener('click', resetToDefault);
+  document.getElementById('btnCopy').addEventListener('click', copyData);
+  document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+
+  function init() {
+    fetchData().then(function() {
+      setInterval(fetchData, POLL_INTERVAL);
+    });
+  }
+
+  checkAuth();
+</script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>课程报名</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .container { width: 100%; max-width: 600px; }
+
+  .header {
+    text-align: center;
+    margin-bottom: 24px;
+    color: #fff;
+  }
+  .header h1 { font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+  .header p { font-size: 14px; opacity: 0.8; margin-top: 6px; }
+
+  .form-section {
+    background: #fff;
+    border-radius: 18px;
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .form-section h2 {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f0f0f0;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 20px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #666;
+  }
+  .form-group input[type="text"],
+  .form-group input[type="tel"] {
+    padding: 10px 14px;
+    border: 2px solid #e8e8e8;
+    border-radius: 10px;
+    font-size: 15px;
+    color: #333;
+    outline: none;
+    transition: border-color 0.2s;
+    background: #fafafa;
+  }
+  .form-group input:focus {
+    border-color: #667eea;
+    background: #fff;
+  }
+  .form-group input::placeholder { color: #bbb; }
+
+  .radio-group {
+    display: flex;
+    gap: 16px;
+    padding-top: 4px;
+  }
+  .radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+  }
+  .radio-group input[type="radio"] {
+    accent-color: #667eea;
+    width: 16px; height: 16px;
+  }
+
+  .cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px; }
+
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,0.18); }
+  .card.full { opacity: 0.45; }
+  .card.full:hover { transform: none; }
+  .card.updating { opacity: 0.7; pointer-events: none; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+  }
+  .card-title .icon {
+    display: inline-block;
+    width: 34px; height: 34px;
+    line-height: 34px; text-align: center;
+    border-radius: 10px;
+    margin-right: 10px;
+    font-size: 16px; color: #fff;
+  }
+
+  .card-count {
+    font-size: 26px;
+    font-weight: 800;
+    color: #555;
+  }
+  .card-count.at-max .current { color: #e74c3c; }
+  .card-count .sep { font-weight: 400; margin: 0 2px; color: #ccc; }
+
+  .progress-wrap {
+    height: 8px;
+    background: #eee;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .people-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    min-height: 24px;
+  }
+  .people-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #555;
+    animation: tagIn 0.3s ease;
+  }
+  @keyframes tagIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .no-select { color: #bbb; font-size: 13px; line-height: 24px; }
+
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s, opacity 0.2s;
+    width: 100%;
+    color: #fff;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn:disabled { background: #ccc !important; cursor: not-allowed; opacity: 0.6; }
+
+  .sync-indicator {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.8);
+    background: rgba(0,0,0,0.3);
+    padding: 4px 10px;
+    border-radius: 10px;
+  }
+
+  .toast {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 28px;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+    z-index: 999;
+    animation: slideDown 0.3s ease;
+    pointer-events: none;
+  }
+  .toast.error { background: #e74c3c; }
+  .toast.success { background: #27ae60; }
+  .toast.info { background: #3498db; }
+
+  @keyframes slideDown {
+    from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  @media (max-width: 500px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .card-title { font-size: 17px; }
+    .card-count { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>课程报名</h1>
+    <p>请填写报名信息，然后选择课程（可多选）</p>
+  </div>
+
+  <div class="form-section">
+    <h2>报名信息</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>姓名 <span style="color:#e74c3c;">*</span></label>
+        <input type="text" id="nameInput" placeholder="请输入姓名" maxlength="20">
+      </div>
+      <div class="form-group">
+        <label>性别 <span style="color:#e74c3c;">*</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="gender" value="男"> 男</label>
+          <label><input type="radio" name="gender" value="女"> 女</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>公司 <span style="color:#e74c3c;">*</span></label>
+        <input type="text" id="companyInput" placeholder="请输入公司名称" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label>电话 <span style="color:#e74c3c;">*</span></label>
+        <input type="tel" id="phoneInput" placeholder="请输入手机号" maxlength="20">
+      </div>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+</div>
+
+<div class="sync-indicator" id="syncIndicator" style="display:none;">同步中...</div>
+
+<script>
+  var API_BASE = '/api/data';
+
+  var POLL_INTERVAL = 5000;
+
+  var CARD_THEMES = [
+    { btn: 'linear-gradient(135deg, #f093fb, #f5576c)', bar: 'linear-gradient(90deg, #f093fb, #f5576c)', icon: 'linear-gradient(135deg, #f093fb, #f5576c)', tagBg: '#fef0f0' },
+    { btn: 'linear-gradient(135deg, #4facfe, #00f2fe)', bar: 'linear-gradient(90deg, #4facfe, #00f2fe)', icon: 'linear-gradient(135deg, #4facfe, #00f2fe)', tagBg: '#e8f4fd' },
+    { btn: 'linear-gradient(135deg, #43e97b, #38f9d7)', bar: 'linear-gradient(90deg, #43e97b, #38f9d7)', icon: 'linear-gradient(135deg, #43e97b, #38f9d7)', tagBg: '#e6f9f0' },
+    { btn: 'linear-gradient(135deg, #fa709a, #fee140)', bar: 'linear-gradient(90deg, #fa709a, #fee140)', icon: 'linear-gradient(135deg, #fa709a, #fee140)', tagBg: '#fff5f5' },
+    { btn: 'linear-gradient(135deg, #a18cd1, #fbc2eb)', bar: 'linear-gradient(90deg, #a18cd1, #fbc2eb)', icon: 'linear-gradient(135deg, #a18cd1, #fbc2eb)', tagBg: '#f8f4ff' },
+    { btn: 'linear-gradient(135deg, #fccb90, #d57eeb)', bar: 'linear-gradient(90deg, #fccb90, #d57eeb)', icon: 'linear-gradient(135deg, #fccb90, #d57eeb)', tagBg: '#fef5ff' },
+    { btn: 'linear-gradient(135deg, #e0c3fc, #8ec5fc)', bar: 'linear-gradient(90deg, #e0c3fc, #8ec5fc)', icon: 'linear-gradient(135deg, #e0c3fc, #8ec5fc)', tagBg: '#f0f5ff' },
+    { btn: 'linear-gradient(135deg, #f9d423, #ff4e50)', bar: 'linear-gradient(90deg, #f9d423, #ff4e50)', icon: 'linear-gradient(135deg, #f9d423, #ff4e50)', tagBg: '#fff8f0' },
+  ];
+
+  var DEFAULT_OPTIONS = [
+    { id: 'A', label: '课程 A', capacity: 8, selected: [] },
+    { id: 'B', label: '课程 B', capacity: 8, selected: [] },
+    { id: 'C', label: '课程 C', capacity: 8, selected: [] },
+  ];
+
+  var options = [];
+  var isRequesting = false;
+  var lastEtag = null;
+  var blobInitialized = false;
+
+  function getPersonName(obj) {
+    if (typeof obj === 'string') return obj;
+    if (obj && typeof obj === 'object') return obj.name || '';
+    return '';
+  }
+
+  // ===== JSONBlob API =====
+  function apiGet() {
+    return fetch(API_BASE + '/' + BLOB_ID).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function apiPut(data) {
+    return fetch(API_BASE + '/' + BLOB_ID, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(function(r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+
+  function fetchData() {
+    return apiGet().then(function(data) {
+      options = data;
+      render();
+    }).catch(function(e) {
+      console.error('获取数据失败:', e);
+    });
+  }
+
+  function saveData(callback) {
+    apiPut(options).then(function(data) {
+      options = data;
+      render();
+      if (callback) callback(true);
+    }).catch(function(e) {
+      showToast('网络错误，请重试', 'error');
+      fetchData(); // Reload to recover
+      if (callback) callback(false);
+    });
+  }
+
+  function getCurrentPerson() {
+    var name = document.getElementById('nameInput').value.trim();
+    var gender = document.querySelector('input[name="gender"]:checked');
+    var company = document.getElementById('companyInput').value.trim();
+    var phone = document.getElementById('phoneInput').value.trim();
+    return {
+      name: name,
+      gender: gender ? gender.value : '',
+      company: company,
+      phone: phone
+    };
+  }
+
+  function validateForm() {
+    var person = getCurrentPerson();
+    if (!person.name) { showToast('请输入姓名', 'error'); return false; }
+    if (!person.gender) { showToast('请选择性别', 'error'); return false; }
+    if (!person.company) { showToast('请输入公司名称', 'error'); return false; }
+    if (!person.phone) { showToast('请输入电话号码', 'error'); return false; }
+    return true;
+  }
+
+  function render() {
+    var cardsEl = document.getElementById('cards');
+    cardsEl.innerHTML = '';
+
+    var person = getCurrentPerson();
+
+    options.forEach(function(opt, idx) {
+      var isFull = opt.selected.length >= opt.capacity;
+      var pct = opt.capacity > 0 ? Math.min((opt.selected.length / opt.capacity) * 100, 100) : 100;
+      var theme = CARD_THEMES[idx % CARD_THEMES.length];
+
+      var peopleHtml = opt.selected.length === 0
+        ? '<div class="no-select">暂无选择</div>'
+        : opt.selected.map(function(p) {
+            var n = getPersonName(p);
+            return '<span class="people-tag" style="background:' + theme.tagBg + ';">' + escHtml(n) + '</span>';
+          }).join('');
+
+      var isMeSelected = person.name && opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+      var isFullForMe = isFull && !isMeSelected;
+
+      cardsEl.innerHTML +=
+        '<div class="card' + (isFullForMe ? ' full' : '') + (isRequesting ? ' updating' : '') + '">' +
+          '<div class="card-header">' +
+            '<div class="card-title">' +
+              '<span class="icon" style="background:' + theme.icon + ';">' + escHtml(opt.label.charAt(0)) + '</span>' + escHtml(opt.label) +
+              (isMeSelected ? '<span style="font-size:12px;color:#27ae60;margin-left:8px;">✓ 已选</span>' : '') +
+            '</div>' +
+            '<div class="card-count' + (isFull ? ' at-max' : '') + '">' +
+              '<span class="current">' + opt.selected.length + '</span><span class="sep"> / </span>' + opt.capacity +
+            '</div>' +
+          '</div>' +
+          '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + theme.bar + ';"></div></div>' +
+          '<div class="people-tags">' + peopleHtml + '</div>' +
+          '<button class="btn" data-option="' + opt.id + '" style="background:' + theme.btn + ';" ' + (isFullForMe || isRequesting ? 'disabled' : '') + '>' +
+            (isMeSelected ? '✅ 已选择（点击取消）' : isFull ? '🔒 名额已满' : '👉 选择') +
+          '</button>' +
+        '</div>';
+    });
+  }
+
+  function selectOption(optionId) {
+    if (!validateForm()) return;
+    if (isRequesting) return;
+
+    var person = getCurrentPerson();
+    isRequesting = true;
+    toggleSync(true);
+    render();
+
+    // Find the option
+    var opt = options.find(function(o) { return o.id === optionId; });
+    if (!opt) { isRequesting = false; toggleSync(false); return; }
+
+    // Toggle selection locally
+    var isMeSelected = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+    if (isMeSelected) {
+      opt.selected = opt.selected.filter(function(p) { return getPersonName(p) !== person.name; });
+    } else {
+      if (opt.selected.length >= opt.capacity) {
+        showToast('名额已满', 'error');
+        isRequesting = false; toggleSync(false);
+        fetchData();
+        return;
+      }
+      opt.selected.push(person);
+    }
+
+    saveData(function(ok) {
+      isRequesting = false;
+      toggleSync(false);
+      if (ok) {
+        var isSelected = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+        showToast(isSelected ? '成功选择 ' + opt.label : '已取消选择', isSelected ? 'success' : 'info');
+      }
+    });
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  var toastTimer;
+  function showToast(msg, type) {
+    var el = document.querySelector('.toast');
+    if (el) el.remove();
+    clearTimeout(toastTimer);
+    var t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    toastTimer = setTimeout(function() { t.remove(); }, 2000);
+  }
+
+  function toggleSync(on) {
+    document.getElementById('syncIndicator').style.display = on ? 'block' : 'none';
+  }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-option]');
+    if (btn && !btn.disabled) selectOption(btn.dataset.option);
+  });
+
+  ['nameInput', 'companyInput', 'phoneInput'].forEach(function(id) {
+    document.getElementById(id).addEventListener('input', render);
+  });
+  document.querySelectorAll('input[name="gender"]').forEach(function(r) {
+    r.addEventListener('change', render);
+  });
+
+  // ===== Initialize =====
+  fetchData().then(function() {
+    setInterval(fetchData, POLL_INTERVAL);
+  });
+</script>
+</body>
+</html>
