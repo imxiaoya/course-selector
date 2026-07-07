@@ -93,7 +93,7 @@
     width: 16px; height: 16px;
   }
 
-  .cards { display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px; }
+  .cards { display: flex; flex-direction: column; gap: 14px; }
 
   .card {
     background: #fff;
@@ -106,6 +106,96 @@
   .card.full { opacity: 0.45; }
   .card.full:hover { transform: none; }
   .card.updating { opacity: 0.7; pointer-events: none; }
+  .card.selected { border: 2px solid #667eea; }
+
+  .submit-section {
+    background: #fff;
+    border-radius: 18px;
+    padding: 20px 24px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    margin-top: 18px;
+    text-align: center;
+  }
+  .submit-section .selected-list {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 16px;
+    line-height: 1.8;
+  }
+  .submit-section .selected-list .item {
+    display: inline-block;
+    background: #f0e6ff;
+    color: #667eea;
+    padding: 4px 12px;
+    border-radius: 12px;
+    margin: 4px;
+    font-weight: 600;
+  }
+
+  .submit-btn {
+    padding: 14px 32px;
+    border: none;
+    border-radius: 14px;
+    font-size: 18px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    transition: transform 0.15s, opacity 0.2s;
+    width: 100%;
+  }
+  .submit-btn:active { transform: scale(0.96); }
+  .submit-btn:disabled { background: #ccc; cursor: not-allowed; opacity: 0.6; }
+
+  .confirm-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .confirm-modal-box {
+    background: #fff;
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+  }
+  .confirm-modal-box h3 {
+    font-size: 20px;
+    color: #333;
+    margin-bottom: 16px;
+  }
+  .confirm-modal-box .modal-list {
+    font-size: 15px;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 2;
+  }
+  .confirm-modal-box .modal-person {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  .confirm-modal-box .modal-btns {
+    display: flex;
+    gap: 12px;
+  }
+  .confirm-modal-box .modal-btns button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .modal-cancel { background: #f0f0f0; color: #555; }
+  .modal-confirm { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
 
   .card-header {
     display: flex;
@@ -260,6 +350,11 @@
   </div>
 
   <div class="cards" id="cards"></div>
+
+  <div class="submit-section" id="submitSection">
+    <div class="selected-list" id="selectedList">尚未选择任何课程</div>
+    <button class="submit-btn" id="submitBtn" disabled>确认提交</button>
+  </div>
 </div>
 
 <div class="sync-indicator" id="syncIndicator" style="display:none;">同步中...</div>
@@ -288,6 +383,7 @@
 
   var options = [];
   var isRequesting = false;
+  var localSelected = {}; // locally selected option ids, not yet submitted
 
   function getPersonName(obj) {
     if (typeof obj === 'string') return obj;
@@ -317,6 +413,18 @@
   function fetchData() {
     return apiGet().then(function(data) {
       options = data;
+      // sync localSelected with server state for current person
+      var person = getCurrentPerson();
+      if (person.name) {
+        options.forEach(function(opt) {
+          var isOnServer = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+          if (isOnServer) {
+            localSelected[opt.id] = true;
+          } else if (!localSelected[opt.id]) {
+            // not locally selected and not on server — keep false
+          }
+        });
+      }
       render();
     }).catch(function(e) {
       console.error('获取数据失败:', e);
@@ -375,11 +483,15 @@
             return '<span class="people-tag" style="background:' + theme.tagBg + ';">' + escHtml(n) + '</span>';
           }).join('');
 
-      var isMeSelected = person.name && opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+      var isMeOnServer = person.name && opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+      var isMeLocallySelected = localSelected[opt.id] === true;
+      var isMeSelected = isMeOnServer || isMeLocallySelected;
       var isFullForMe = isFull && !isMeSelected;
 
+      var cardClass = 'card' + (isFullForMe ? ' full' : '') + (isRequesting ? ' updating' : '') + (isMeLocallySelected && !isMeOnServer ? ' selected' : '');
+
       cardsEl.innerHTML +=
-        '<div class="card' + (isFullForMe ? ' full' : '') + (isRequesting ? ' updating' : '') + '">' +
+        '<div class="' + cardClass + '">' +
           '<div class="card-header">' +
             '<div class="card-title">' +
               '<span class="icon" style="background:' + theme.icon + ';">' + escHtml(opt.label.charAt(0)) + '</span>' + escHtml(opt.label) +
@@ -392,45 +504,142 @@
           '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + theme.bar + ';"></div></div>' +
           '<div class="people-tags">' + peopleHtml + '</div>' +
           '<button class="btn" data-option="' + opt.id + '" style="background:' + theme.btn + ';" ' + (isFullForMe || isRequesting ? 'disabled' : '') + '>' +
-            (isMeSelected ? '✅ 已选择（点击取消）' : isFull ? '🔒 名额已满' : '👉 选择') +
+            (isMeLocallySelected && !isMeOnServer ? '取消选择' : isMeOnServer ? '✅ 已提交（点击取消）' : isFull ? '🔒 名额已满' : '👉 选择') +
           '</button>' +
         '</div>';
     });
+
+    // Update submit section
+    var selectedIds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; });
+    var selectedOpts = selectedIds.map(function(id) { return options.find(function(o) { return o.id === id; }); }).filter(Boolean);
+    
+    var listEl = document.getElementById('selectedList');
+    var btnEl = document.getElementById('submitBtn');
+
+    if (selectedOpts.length === 0) {
+      listEl.innerHTML = '尚未选择任何课程';
+      btnEl.disabled = true;
+    } else {
+      listEl.innerHTML = '已选择：' + selectedOpts.map(function(o) { return '<span class="item">' + escHtml(o.label) + '</span>'; }).join('');
+      btnEl.disabled = isRequesting;
+    }
   }
 
-  function selectOption(optionId) {
+  function toggleLocalOption(optionId) {
     if (!validateForm()) return;
-    if (isRequesting) return;
+
+    var opt = options.find(function(o) { return o.id === optionId; });
+    if (!opt) return;
 
     var person = getCurrentPerson();
+    var isMeOnServer = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+
+    if (isMeOnServer) {
+      // Already submitted to server — cancel by removing from server
+      cancelFromServer(optionId, person);
+      return;
+    }
+
+    // Toggle local selection
+    if (localSelected[optionId]) {
+      localSelected[optionId] = false;
+    } else {
+      // Check if it would be full
+      var currentServerCount = opt.selected.length;
+      var localAdds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; })
+        .filter(function(k) { return !opt.selected.some(function(p) { return getPersonName(p) === person.name; }); })
+        .filter(function(k) { return k === optionId; });
+      if (currentServerCount + localAdds.length > opt.capacity) {
+        showToast('名额已满', 'error');
+        return;
+      }
+      localSelected[optionId] = true;
+    }
+    render();
+  }
+
+  function cancelFromServer(optionId, person) {
+    if (isRequesting) return;
+    isRequesting = true;
+    toggleSync(true);
+
+    var opt = options.find(function(o) { return o.id === optionId; });
+    if (!opt) { isRequesting = false; toggleSync(false); return; }
+
+    opt.selected = opt.selected.filter(function(p) { return getPersonName(p) !== person.name; });
+    localSelected[optionId] = false;
+
+    saveData(function(ok) {
+      isRequesting = false;
+      toggleSync(false);
+      if (ok) showToast('已取消选择 ' + opt.label, 'info');
+    });
+  }
+
+  function submitSelection() {
+    var person = getCurrentPerson();
+    var selectedIds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; });
+
+    // Only submit IDs that are not already on server
+    var newIds = selectedIds.filter(function(id) {
+      var opt = options.find(function(o) { return o.id === id; });
+      return opt && !opt.selected.some(function(p) { return getPersonName(p) === person.name; });
+    });
+
+    if (newIds.length === 0) {
+      showToast('没有新的选择需要提交', 'info');
+      return;
+    }
+
+    // Show confirmation modal
+    var selectedLabels = newIds.map(function(id) {
+      return options.find(function(o) { return o.id === id; }).label;
+    });
+
+    showModal(person, selectedLabels, function() {
+      doSubmit(person, newIds);
+    });
+  }
+
+  function showModal(person, labels, onConfirm) {
+    var modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    modal.innerHTML =
+      '<div class="confirm-modal-box">' +
+        '<h3>确认提交</h3>' +
+        '<div class="modal-list">' + labels.map(function(l) { return '✅ ' + escHtml(l); }).join('<br>') + '</div>' +
+        '<div class="modal-person">报名人：' + escHtml(person.name) + ' | ' + escHtml(person.gender) + ' | ' + escHtml(person.company) + ' | ' + escHtml(person.phone) + '</div>' +
+        '<div class="modal-btns">' +
+          '<button class="modal-cancel" id="modalCancelBtn">取消</button>' +
+          '<button class="modal-confirm" id="modalConfirmBtn">确认提交</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    document.getElementById('modalCancelBtn').onclick = function() { modal.remove(); };
+    document.getElementById('modalConfirmBtn').onclick = function() { modal.remove(); onConfirm(); };
+  }
+
+  function doSubmit(person, newIds) {
+    if (isRequesting) return;
     isRequesting = true;
     toggleSync(true);
     render();
 
-    // Find the option
-    var opt = options.find(function(o) { return o.id === optionId; });
-    if (!opt) { isRequesting = false; toggleSync(false); return; }
-
-    // Toggle selection locally
-    var isMeSelected = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
-    if (isMeSelected) {
-      opt.selected = opt.selected.filter(function(p) { return getPersonName(p) !== person.name; });
-    } else {
-      if (opt.selected.length >= opt.capacity) {
-        showToast('名额已满', 'error');
-        isRequesting = false; toggleSync(false);
-        fetchData();
-        return;
+    // Add person to selected options
+    newIds.forEach(function(id) {
+      var opt = options.find(function(o) { return o.id === id; });
+      if (opt && opt.selected.length < opt.capacity) {
+        opt.selected.push(person);
       }
-      opt.selected.push(person);
-    }
+    });
 
     saveData(function(ok) {
       isRequesting = false;
       toggleSync(false);
       if (ok) {
-        var isSelected = opt.selected.some(function(p) { return getPersonName(p) === person.name; });
-        showToast(isSelected ? '成功选择 ' + opt.label : '已取消选择', isSelected ? 'success' : 'info');
+        var labels = newIds.map(function(id) { return options.find(function(o) { return o.id === id; }).label; });
+        showToast('成功报名：' + labels.join(', '), 'success');
       }
     });
   }
@@ -457,7 +666,8 @@
 
   document.addEventListener('click', function(e) {
     var btn = e.target.closest('[data-option]');
-    if (btn && !btn.disabled) selectOption(btn.dataset.option);
+    if (btn && !btn.disabled) toggleLocalOption(btn.dataset.option);
+    if (e.target.closest('#submitBtn') && !e.target.closest('#submitBtn').disabled) submitSelection();
   });
 
   ['nameInput', 'companyInput', 'phoneInput'].forEach(function(id) {
