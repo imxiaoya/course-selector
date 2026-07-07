@@ -344,7 +344,7 @@
 </div>
 
 <script>
-  // ===== JSONBlob Cloud Storage Config =====
+  // ===== Cloudflare Pages Functions API =====
   var API_BASE = '/api/data';
   var ADMIN_PW = 'admin';
   var POLL_INTERVAL = 5000;
@@ -365,19 +365,19 @@
     return '';
   }
 
-  // ===== JSONBlob API =====
+  // ===== API Calls =====
   function apiGet() {
-    return fetch(API_BASE + '/' + BLOB_ID).then(function(r) {
+    return fetch(API_BASE).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     });
   }
 
-  function apiPut(data) {
-    return fetch(API_BASE + '/' + BLOB_ID, {
-      method: 'PUT',
+  function apiPost(data) {
+    return fetch(API_BASE, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify({ password: ADMIN_PW, options: data }),
     }).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -395,7 +395,7 @@
   }
 
   function saveToServer() {
-    apiPut(options).then(function(data) {
+    apiPost(options).then(function(data) {
       options = data;
       renderAll();
       showToast('设置已保存并同步', 'success');
