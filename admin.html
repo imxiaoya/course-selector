@@ -83,6 +83,7 @@
     outline: none;
   }
   .config-table input[type="number"]:focus { border-color: #667eea; }
+  .config-table input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: #667eea; }
 
   .btn-delete {
     background: none;
@@ -300,7 +301,7 @@
       <h2>课程配置</h2>
       <table class="config-table">
         <thead>
-          <tr><th>ID</th><th>课程名称</th><th>人数上限</th><th>已选</th><th style="width:100px;">进度</th><th style="width:60px;">操作</th></tr>
+          <tr><th>ID</th><th>课程名称</th><th>人数上限</th><th>已选</th><th style="width:100px;">进度</th><th style="width:70px;">显示</th><th style="width:60px;">操作</th></tr>
         </thead>
         <tbody id="configBody"></tbody>
       </table>
@@ -350,9 +351,9 @@
   var POLL_INTERVAL = 5000;
 
   var DEFAULT_OPTIONS = [
-    { id: 'A', label: '课程 A', capacity: 8, selected: [] },
-    { id: 'B', label: '课程 B', capacity: 8, selected: [] },
-    { id: 'C', label: '课程 C', capacity: 8, selected: [] },
+    { id: 'A', label: '课程 A', capacity: 8, selected: [], visible: true },
+    { id: 'B', label: '课程 B', capacity: 8, selected: [], visible: true },
+    { id: 'C', label: '课程 C', capacity: 8, selected: [], visible: true },
   ];
   var BAR_COLORS = ['#f5576c', '#4facfe', '#43e97b', '#fa709a', '#a18cd1', '#d57eeb', '#8ec5fc', '#ff4e50'];
 
@@ -522,6 +523,7 @@
         '<td>' + opt.selected.length + ' 人</td>' +
         '<td><div class="progress-mini"><div class="progress-mini-bar" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
         '<span style="font-size:11px;color:#999;">' + pct + '%</span></td>' +
+        '<td style="text-align:center;"><input type="checkbox" id="visible-' + opt.id + '"' + (opt.visible !== false ? ' checked' : '') + ' title="在前端显示该课程"></td>' +
         '<td><button class="btn-delete" data-delete="' + opt.id + '">删除</button></td>' +
       '</tr>';
     }).join('');
@@ -583,7 +585,7 @@
   function addOption() {
     var newId = genNextId();
     nextIdCounter++;
-    options.push({ id: newId, label: '新课程', capacity: 8, selected: [] });
+    options.push({ id: newId, label: '新课程', capacity: 8, selected: [], visible: true });
     saveToServer();
   }
 
@@ -599,11 +601,13 @@
     options.forEach(function(opt) {
       var labelEl = document.getElementById('label-' + opt.id);
       var capEl = document.getElementById('capacity-' + opt.id);
+      var visEl = document.getElementById('visible-' + opt.id);
       if (labelEl && labelEl.value.trim()) opt.label = labelEl.value.trim();
       if (capEl) {
         var v = parseInt(capEl.value, 10);
         if (v >= 1) opt.capacity = v;
       }
+      if (visEl) opt.visible = visEl.checked;
     });
     saveToServer();
   }

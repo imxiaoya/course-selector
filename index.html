@@ -553,6 +553,9 @@
     var person = getCurrentPerson();
     var phone = person.phone || myPhone;
 
+    // Only show visible course options (admin can hide ones via backend)
+    var displayOptions = options.filter(function(o) { return o.visible !== false; });
+
     // Real-time phone validation visual feedback
     var phoneInput = document.getElementById('phoneInput');
     if (phoneInput.value && !/^\d{11}$/.test(phoneInput.value)) {
@@ -571,7 +574,7 @@
     // Show "already registered" banner if applicable
     var submitSection = document.getElementById('submitSection');
     if (alreadyRegistered && phone) {
-      var regOpts = getRegisteredOptions(phone);
+      var regOpts = getRegisteredOptions(phone).filter(function(o) { return o.visible !== false; });
       // Find the person's info from server data
       var myInfo = null;
       options.forEach(function(opt) {
@@ -591,7 +594,7 @@
         '</div>';
 
       // Still show course cards but in view-only mode
-      options.forEach(function(opt, idx) {
+      displayOptions.forEach(function(opt, idx) {
         var isFull = opt.selected.length >= opt.capacity;
         var pct = opt.capacity > 0 ? Math.min((opt.selected.length / opt.capacity) * 100, 100) : 100;
         var theme = CARD_THEMES[idx % CARD_THEMES.length];
@@ -620,7 +623,7 @@
 
     submitSection.style.display = '';
 
-    options.forEach(function(opt, idx) {
+    displayOptions.forEach(function(opt, idx) {
       var isFull = opt.selected.length >= opt.capacity;
       var pct = opt.capacity > 0 ? Math.min((opt.selected.length / opt.capacity) * 100, 100) : 100;
       var theme = CARD_THEMES[idx % CARD_THEMES.length];
@@ -648,7 +651,7 @@
 
     // Update submit section
     var selectedIds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; });
-    var selectedOpts = selectedIds.map(function(id) { return options.find(function(o) { return o.id === id; }); }).filter(Boolean);
+    var selectedOpts = selectedIds.map(function(id) { return options.find(function(o) { return o.id === id; }); }).filter(function(o) { return o && o.visible !== false; });
     
     var listEl = document.getElementById('selectedList');
     var btnEl = document.getElementById('submitBtn');
