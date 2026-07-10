@@ -363,7 +363,7 @@
 <div class="container">
   <div class="header">
     <h1>瑜伽课程报名</h1>
-    <p>请填写报名信息，然后选择课程（可多选）</p>
+    <p>请填写报名信息，然后选择课程（每人限报一门）</p>
   </div>
 
   <div class="form-section">
@@ -425,7 +425,7 @@
 
   var options = [];
   var isRequesting = false;
-  var localSelected = {}; // locally selected option ids, not yet submitted
+  var localSelectedId = null; // locally selected option id (single select), not yet submitted
   var myPhone = localStorage.getItem('kecheng_phone') || ''; // remember submitted phone
   var alreadyRegistered = false; // flag: this phone already submitted
 
@@ -484,7 +484,7 @@
       if (myPhone && !document.getElementById('phoneInput').value.trim()) {
         document.getElementById('phoneInput').value = myPhone;
       }
-      // sync localSelected with server state for current person
+      // sync localSelectedId with server state for current person
       var person = getCurrentPerson();
       if (person.phone && isPhoneRegistered(person.phone)) {
         alreadyRegistered = true;
@@ -492,7 +492,7 @@
         options.forEach(function(opt) {
           var isOnServer = opt.selected.some(function(p) { return getPersonPhone(p) === person.phone; });
           if (isOnServer) {
-            localSelected[opt.id] = true;
+            localSelectedId = opt.id;
           }
         });
       }
@@ -629,7 +629,7 @@
       var theme = CARD_THEMES[idx % CARD_THEMES.length];
 
       var isMeOnServer = person.phone && opt.selected.some(function(p) { return getPersonPhone(p) === person.phone; });
-      var isMeLocallySelected = localSelected[opt.id] === true;
+      var isMeLocallySelected = localSelectedId === opt.id;
       var isMeSelected = isMeOnServer || isMeLocallySelected;
       var isFullForMe = isFull && !isMeSelected;
 
@@ -650,8 +650,7 @@
     });
 
     // Update submit section
-    var selectedIds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; });
-    var selectedOpts = selectedIds.map(function(id) { return options.find(function(o) { return o.id === id; }); }).filter(function(o) { return o && o.visible !== false; });
+    var selectedOpts = localSelectedId ? [options.find(function(o) { return o.id === localSelectedId; })].filter(function(o) { return o && o.visible !== false; }) : [];
     
     var listEl = document.getElementById('selectedList');
     var btnEl = document.getElementById('submitBtn');
@@ -679,16 +678,16 @@
 
     var person = getCurrentPerson();
 
-    // Toggle local selection
-    if (localSelected[optionId]) {
-      localSelected[optionId] = false;
+    // Single select: toggle current course (only one allowed per phone)
+    if (localSelectedId === optionId) {
+      localSelectedId = null; // click again to deselect
     } else {
       // Check capacity
       if (opt.selected.length >= opt.capacity) {
         showToast('名额已满', 'error');
         return;
       }
-      localSelected[optionId] = true;
+      localSelectedId = optionId;
     }
     render();
   }
@@ -700,10 +699,10 @@
     }
 
     var person = getCurrentPerson();
-    var selectedIds = Object.keys(localSelected).filter(function(k) { return localSelected[k] === true; });
+    var selectedIds = localSelectedId ? [localSelectedId] : [];
 
     if (selectedIds.length === 0) {
-      showToast('请先选择课程', 'info');
+      showToast('请先选择一门课程', 'info');
       return;
     }
 

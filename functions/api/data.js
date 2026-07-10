@@ -48,6 +48,19 @@ export async function onRequestPost(context) {
 
   const data = Array.isArray(body.options) ? body.options : DEFAULT_DATA;
 
+  // Enforce one phone per course: keep a person (by phone) in only the first option they appear in
+  const seenPhones = new Set();
+  data.forEach(function(opt) {
+    if (!opt.selected || !Array.isArray(opt.selected)) return;
+    opt.selected = opt.selected.filter(function(p) {
+      const phone = (typeof p === 'object' && p.phone) ? p.phone : '';
+      if (!phone) return true;
+      if (seenPhones.has(phone)) return false;
+      seenPhones.add(phone);
+      return true;
+    });
+  });
+
   // If body contains a "checkPhone" field, check for duplicate registration
   if (body.checkPhone) {
     const phone = body.checkPhone;
