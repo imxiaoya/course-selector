@@ -596,10 +596,6 @@
         var pct = opt.capacity > 0 ? Math.min((opt.selected.length / opt.capacity) * 100, 100) : 100;
         var theme = CARD_THEMES[idx % CARD_THEMES.length];
 
-        var peopleHtml = opt.selected.length === 0
-          ? '<div class="no-select">暂无报名</div>'
-          : '<div class="no-select">已有 ' + opt.selected.length + ' 人报名</div>';
-
         var isMine = opt.selected.some(function(p) { return getPersonPhone(p) === phone; });
 
         cardsEl.innerHTML +=
@@ -609,12 +605,7 @@
                 '<span class="icon" style="background:' + theme.icon + ';">' + escHtml(opt.label.charAt(0)) + '</span>' + escHtml(opt.label) +
                 (isMine ? '<span style="font-size:12px;color:#27ae60;margin-left:8px;">✓ 已报名</span>' : '') +
               '</div>' +
-              '<div class="card-count' + (isFull ? ' at-max' : '') + '">' +
-                '<span class="current">' + opt.selected.length + '</span><span class="sep"> / </span>' + opt.capacity +
-              '</div>' +
             '</div>' +
-            '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + theme.bar + ';"></div></div>' +
-            '<div class="people-tags">' + peopleHtml + '</div>' +
           '</div>';
       });
 
@@ -634,10 +625,6 @@
       var pct = opt.capacity > 0 ? Math.min((opt.selected.length / opt.capacity) * 100, 100) : 100;
       var theme = CARD_THEMES[idx % CARD_THEMES.length];
 
-      var peopleHtml = opt.selected.length === 0
-        ? '<div class="no-select">暂无报名</div>'
-        : '<div class="no-select">已有 ' + opt.selected.length + ' 人报名</div>';
-
       var isMeOnServer = person.phone && opt.selected.some(function(p) { return getPersonPhone(p) === person.phone; });
       var isMeLocallySelected = localSelected[opt.id] === true;
       var isMeSelected = isMeOnServer || isMeLocallySelected;
@@ -652,12 +639,7 @@
               '<span class="icon" style="background:' + theme.icon + ';">' + escHtml(opt.label.charAt(0)) + '</span>' + escHtml(opt.label) +
               (isMeSelected ? '<span style="font-size:12px;color:#27ae60;margin-left:8px;">✓ 已选</span>' : '') +
             '</div>' +
-            '<div class="card-count' + (isFull ? ' at-max' : '') + '">' +
-              '<span class="current">' + opt.selected.length + '</span><span class="sep"> / </span>' + opt.capacity +
-            '</div>' +
           '</div>' +
-          '<div class="progress-wrap"><div class="progress-bar" style="width:' + pct + '%;background:' + theme.bar + ';"></div></div>' +
-          '<div class="people-tags">' + peopleHtml + '</div>' +
           '<button class="btn" data-option="' + opt.id + '" style="background:' + theme.btn + ';" ' + (isFullForMe || isRequesting ? 'disabled' : '') + '>' +
             (isMeLocallySelected && !isMeOnServer ? '取消选择' : isFull ? '🔒 名额已满' : '👉 选择') +
           '</button>' +
