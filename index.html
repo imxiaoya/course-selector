@@ -597,11 +597,8 @@
         var theme = CARD_THEMES[idx % CARD_THEMES.length];
 
         var peopleHtml = opt.selected.length === 0
-          ? '<div class="no-select">暂无选择</div>'
-          : opt.selected.map(function(p) {
-              var n = getPersonName(p);
-              return '<span class="people-tag" style="background:' + theme.tagBg + ';">' + escHtml(n) + '</span>';
-            }).join('');
+          ? '<div class="no-select">暂无报名</div>'
+          : '<div class="no-select">已有 ' + opt.selected.length + ' 人报名</div>';
 
         var isMine = opt.selected.some(function(p) { return getPersonPhone(p) === phone; });
 
@@ -638,11 +635,8 @@
       var theme = CARD_THEMES[idx % CARD_THEMES.length];
 
       var peopleHtml = opt.selected.length === 0
-        ? '<div class="no-select">暂无选择</div>'
-        : opt.selected.map(function(p) {
-            var n = getPersonName(p);
-            return '<span class="people-tag" style="background:' + theme.tagBg + ';">' + escHtml(n) + '</span>';
-          }).join('');
+        ? '<div class="no-select">暂无报名</div>'
+        : '<div class="no-select">已有 ' + opt.selected.length + ' 人报名</div>';
 
       var isMeOnServer = person.phone && opt.selected.some(function(p) { return getPersonPhone(p) === person.phone; });
       var isMeLocallySelected = localSelected[opt.id] === true;
