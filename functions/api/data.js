@@ -46,7 +46,12 @@ export async function onRequestPost(context) {
     return new Response('Unauthorized', { status: 401, headers: corsHeaders() });
   }
 
-  const data = Array.isArray(body.options) ? body.options : DEFAULT_DATA;
+  // 纯登录校验模式：只传 password、不传 options 时，仅校验密码并返回 200，不读写 KV
+  if (!Array.isArray(body.options)) {
+    return jsonResponse({ ok: true });
+  }
+
+  const data = body.options;
 
   // Enforce one phone per course: keep a person (by phone) in only the first option they appear in
   const seenPhones = new Set();

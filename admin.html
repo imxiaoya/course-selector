@@ -262,6 +262,7 @@
       <a href="#" data-tab="config" class="tab-link">配置</a>
       <a href="#" data-tab="detail" class="tab-link">明细</a>
       <a href="#" data-tab="export" class="tab-link">导出</a>
+      <a href="#" id="btnLogout">退出</a>
     </nav>
   </div>
 
@@ -347,7 +348,9 @@
 <script>
   // ===== Cloudflare Pages Functions API =====
   var API_BASE = '/api/data';
-  var ADMIN_PW = 'Lvgemadmin123!';
+  // 密码不再硬编码在前端：登录时由用户输入，临时保存在会话内存与 sessionStorage
+  var sessionPassword = '';
+  var PW_STORAGE_KEY = 'admin_pw_v1';
   var POLL_INTERVAL = 5000;
 
   var DEFAULT_OPTIONS = [
@@ -378,7 +381,7 @@
     return fetch(API_BASE, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: ADMIN_PW, options: data }),
+      body: JSON.stringify({ password: sessionPassword, options: data }),
     }).then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
@@ -418,6 +421,7 @@
 
   function checkAuth() {
     if (sessionStorage.getItem('admin_authed_v4') === '1') {
+      sessionPassword = sessionStorage.getItem(PW_STORAGE_KEY) || '';
       document.getElementById('pwOverlay').style.display = 'none';
       document.getElementById('mainContent').style.display = 'block';
       init();
@@ -426,18 +430,35 @@
     return false;
   }
 
+  // 向后端发起纯密码校验（不传 options），返回 200 表示正确
+  function verifyPassword(pw) {
+    return fetch(API_BASE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw }),
+    }).then(function(r) { return r.status === 200; });
+  }
+
   document.getElementById('pwSubmit').addEventListener('click', function() {
-    if (pwInput.value === ADMIN_PW) {
-      sessionStorage.setItem('admin_authed_v4', '1');
-      document.getElementById('pwOverlay').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      pwError.textContent = '';
-      init();
-    } else {
-      pwError.textContent = '密码错误';
-      pwInput.value = '';
-      pwInput.focus();
-    }
+    var pw = pwInput.value;
+    if (!pw) { pwError.textContent = '请输入密码'; return; }
+    verifyPassword(pw).then(function(ok) {
+      if (ok) {
+        sessionPassword = pw;
+        sessionStorage.setItem(PW_STORAGE_KEY, pw);
+        sessionStorage.setItem('admin_authed_v4', '1');
+        document.getElementById('pwOverlay').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        pwError.textContent = '';
+        init();
+      } else {
+        pwError.textContent = '密码错误';
+        pwInput.value = '';
+        pwInput.focus();
+      }
+    }).catch(function() {
+      pwError.textContent = '验证失败，请重试';
+    });
   });
   pwInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') document.getElementById('pwSubmit').click();
@@ -678,6 +699,12 @@
   document.getElementById('btnReset').addEventListener('click', resetToDefault);
   document.getElementById('btnCopy').addEventListener('click', copyData);
   document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+  document.getElementById('btnLogout').addEventListener('click', function(e) {
+    e.preventDefault();
+    sessionStorage.removeItem('admin_authed_v4');
+    sessionStorage.removeItem(PW_STORAGE_KEY);
+    location.reload();
+  });
 
   function init() {
     fetchData().then(function() {
