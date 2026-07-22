@@ -75,7 +75,7 @@ cf-pages/
 打开 `functions/api/data.js`，找到：
 
 ```js
-const ADMIN_PW = 'admin';
+const ADMIN_PW = '你的密码';
 ```
 
 把 `'admin'` 改成你要的密码，保存后重新上传文件并重新部署。

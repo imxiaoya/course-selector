@@ -4,7 +4,7 @@ const DEFAULT_DATA = [
   { id: 'C', label: '课程 C', capacity: 8, selected: [] },
 ];
 
-const ADMIN_PW = 'admin';
+const ADMIN_PW = 'Lvgemadmin123!';
 const KV_KEY = 'data';
 
 function corsHeaders() {
